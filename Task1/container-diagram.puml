@@ -1,0 +1,76 @@
+@startuml C4_Container_Diagram_NovaMarket
+!include <C4/C4_Container>
+
+title Container Diagram - NovaMarket EDA Architecture
+
+Person(buyer, "Покупатель", "Просматривает товары, оформляет заказы")
+Person(seller, "Продавец", "Управляет товарами, получает уведомления о заказах")
+
+System_Boundary(novamarket, "NovaMarket Platform") {
+    Container(mobile_app, "Mobile App", "React Native", "Мобильное приложение для покупателей")
+    Container(web_admin, "Web Admin", "React", "Веб-интерфейс для продавцов")
+    
+    Container(api_gateway, "API Gateway", "NGINX", "Маршрутизация запросов, аутентификация")
+    
+    Container(user_service, "User Service", "Node.js", "Управление пользователями, аутентификация")
+    Container(catalog_service, "Catalog Service", "Node.js", "Каталог товаров, поиск, фильтрация")
+    Container(cart_service, "Cart Service", "Node.js", "Корзина покупок")
+    Container(order_service, "Order Service", "Node.js", "Управление заказами, статусы")
+    Container(payment_service, "Payment Service", "Node.js", "Обработка платежей")
+    Container(inventory_service, "Inventory Service", "Node.js", "Управление складом, резервирование")
+    Container(notification_service, "Notification Service", "Node.js", "Уведомления пользователей")
+    Container(delivery_service, "Delivery Service", "Node.js", "Интеграция с логистикой")
+    
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Данные пользователей")
+    ContainerDb(catalog_db, "Catalog Database", "PostgreSQL", "Каталог товаров")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Заказы и транзакции")
+    ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Складские остатки")
+    
+    Container(event_bus, "Event Bus", "Apache Kafka", "Обмен событиями между сервисами")
+}
+
+System_Ext(payment_gateway, "Payment Gateway", "Внешний платежный шлюз")
+System_Ext(logistics_provider, "Logistics Provider", "Внешняя логистическая служба")
+
+' User interactions
+Rel(buyer, mobile_app, "Просматривает товары, оформляет заказы", "HTTPS")
+Rel(seller, web_admin, "Управляет товарами", "HTTPS")
+
+' API Gateway connections
+Rel(mobile_app, api_gateway, "API calls", "HTTPS")
+Rel(web_admin, api_gateway, "API calls", "HTTPS")
+
+' Service to API Gateway
+Rel(api_gateway, user_service, "User requests", "HTTP")
+Rel(api_gateway, catalog_service, "Catalog requests", "HTTP")
+Rel(api_gateway, cart_service, "Cart requests", "HTTP")
+Rel(api_gateway, order_service, "Order requests", "HTTP")
+Rel(api_gateway, payment_service, "Payment requests", "HTTP")
+
+' Database connections
+Rel(user_service, user_db, "Read/Write", "SQL")
+Rel(catalog_service, catalog_db, "Read/Write", "SQL")
+Rel(order_service, order_db, "Read/Write", "SQL")
+Rel(inventory_service, inventory_db, "Read/Write", "SQL")
+
+' Event Bus connections
+Rel(catalog_service, event_bus, "Publishes: ProductViewed, ProductUpdated", "Kafka")
+Rel(cart_service, event_bus, "Publishes: ProductAddedToCart, CartUpdated", "Kafka")
+Rel(order_service, event_bus, "Publishes: OrderCreated, OrderStatusChanged", "Kafka")
+Rel(payment_service, event_bus, "Publishes: PaymentInitiated, PaymentCompleted, PaymentFailed", "Kafka")
+Rel(inventory_service, event_bus, "Publishes: InventoryReserved, InventoryReleased, StockUpdated", "Kafka")
+Rel(notification_service, event_bus, "Publishes: NotificationSent", "Kafka")
+Rel(delivery_service, event_bus, "Publishes: DeliveryRequested, DeliveryStatusChanged", "Kafka")
+
+' Event subscriptions
+Rel(event_bus, order_service, "Subscribes to: PaymentCompleted, InventoryReserved", "Kafka")
+Rel(event_bus, payment_service, "Subscribes to: OrderCreated", "Kafka")
+Rel(event_bus, inventory_service, "Subscribes to: OrderCreated, PaymentCompleted", "Kafka")
+Rel(event_bus, notification_service, "Subscribes to: OrderStatusChanged, PaymentCompleted", "Kafka")
+Rel(event_bus, delivery_service, "Subscribes to: OrderConfirmed", "Kafka")
+
+' External integrations
+Rel(payment_service, payment_gateway, "Process payments", "HTTPS")
+Rel(delivery_service, logistics_provider, "Request delivery", "HTTPS")
+
+@enduml
