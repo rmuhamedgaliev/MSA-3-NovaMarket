@@ -1,0 +1,11 @@
+{
+  "metric": {
+    "__name__": "http_requests_total",
+    "instance": "scaletestapp-service:80",
+    "job": "scaletestapp"
+  },
+  "value": [
+    1757281938.065,
+    "127"
+  ]
+}

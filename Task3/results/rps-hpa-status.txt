@@ -1,0 +1,2 @@
+NAME                   REFERENCE                 TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+scaletestapp-hpa-cpu   Deployment/scaletestapp   cpu: 1%/50%   1         10        1          48s

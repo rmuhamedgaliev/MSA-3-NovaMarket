@@ -1,0 +1,107 @@
+@startuml C4_Container_Diagram_NovaMarket_With_CQRS
+!include <C4/C4_Container>
+
+title Container Diagram - NovaMarket EDA Architecture with CQRS
+
+Person(buyer, "Покупатель", "Просматривает товары, оформляет заказы, смотрит историю")
+Person(seller, "Продавец", "Управляет товарами, получает уведомления о заказах")
+
+System_Boundary(novamarket, "NovaMarket Platform") {
+    Container(mobile_app, "Mobile App", "React Native", "Мобильное приложение для покупателей")
+    Container(web_admin, "Web Admin", "React", "Веб-интерфейс для продавцов")
+    
+    Container(api_gateway, "API Gateway", "NGINX", "Маршрутизация запросов, аутентификация")
+    
+    ' Write Side Services
+    Container(user_service, "User Service", "Node.js", "Управление пользователями, аутентификация")
+    Container(catalog_service, "Catalog Service", "Node.js", "Каталог товаров, поиск, фильтрация")
+    Container(cart_service, "Cart Service", "Node.js", "Корзина покупок")
+    Container(order_service, "Order Service", "Node.js", "Управление заказами, статусы")
+    Container(payment_service, "Payment Service", "Node.js", "Обработка платежей")
+    Container(inventory_service, "Inventory Service", "Node.js", "Управление складом, резервирование")
+    Container(notification_service, "Notification Service", "Node.js", "Уведомления пользователей")
+    Container(delivery_service, "Delivery Service", "Node.js", "Интеграция с логистикой")
+    
+    ' Read Side Services
+    Container(order_history_service, "Order History Service", "Node.js", "Агрегированные данные истории заказов")
+    Container(review_service, "Review Service", "Node.js", "Отзывы о товарах и заказах")
+    Container(receipt_service, "Receipt Service", "Node.js", "Генерация и выдача чеков")
+    
+    ' Databases
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Данные пользователей")
+    ContainerDb(catalog_db, "Catalog Database", "PostgreSQL", "Каталог товаров")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Заказы и транзакции")
+    ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Складские остатки")
+    
+    ' Read Model Databases
+    ContainerDb(order_history_db, "Order History Database", "PostgreSQL", "Оптимизированная read модель истории заказов")
+    ContainerDb(review_db, "Review Database", "PostgreSQL", "Отзывы и рейтинги")
+    ContainerDb(receipt_db, "Receipt Database", "PostgreSQL", "Сгенерированные чеки")
+    
+    ' Cache
+    ContainerDb(redis_cache, "Redis Cache", "Redis", "Кэш для быстрого доступа к истории заказов")
+    
+    Container(event_bus, "Event Bus", "Apache Kafka", "Обмен событиями между сервисами")
+}
+
+System_Ext(payment_gateway, "Payment Gateway", "Внешний платежный шлюз")
+System_Ext(logistics_provider, "Logistics Provider", "Внешняя логистическая служба")
+
+' User interactions
+Rel(buyer, mobile_app, "Просматривает товары, оформляет заказы, смотрит историю", "HTTPS")
+Rel(seller, web_admin, "Управляет товарами", "HTTPS")
+
+' API Gateway connections
+Rel(mobile_app, api_gateway, "API calls", "HTTPS")
+Rel(web_admin, api_gateway, "API calls", "HTTPS")
+
+' Write Side Service to API Gateway
+Rel(api_gateway, user_service, "User requests", "HTTP")
+Rel(api_gateway, catalog_service, "Catalog requests", "HTTP")
+Rel(api_gateway, cart_service, "Cart requests", "HTTP")
+Rel(api_gateway, order_service, "Order requests", "HTTP")
+Rel(api_gateway, payment_service, "Payment requests", "HTTP")
+
+' Read Side Service to API Gateway
+Rel(api_gateway, order_history_service, "Order history requests", "HTTP")
+Rel(api_gateway, review_service, "Review requests", "HTTP")
+Rel(api_gateway, receipt_service, "Receipt requests", "HTTP")
+
+' Write Side Database connections
+Rel(user_service, user_db, "Read/Write", "SQL")
+Rel(catalog_service, catalog_db, "Read/Write", "SQL")
+Rel(order_service, order_db, "Read/Write", "SQL")
+Rel(inventory_service, inventory_db, "Read/Write", "SQL")
+
+' Read Side Database connections
+Rel(order_history_service, order_history_db, "Read", "SQL")
+Rel(order_history_service, redis_cache, "Read/Write", "Redis")
+Rel(review_service, review_db, "Read/Write", "SQL")
+Rel(receipt_service, receipt_db, "Read/Write", "SQL")
+
+' Event Bus connections - Write Side
+Rel(catalog_service, event_bus, "Publishes: ProductViewed, ProductUpdated", "Kafka")
+Rel(cart_service, event_bus, "Publishes: ProductAddedToCart, CartUpdated", "Kafka")
+Rel(order_service, event_bus, "Publishes: OrderCreated, OrderStatusChanged, OrderCompleted", "Kafka")
+Rel(payment_service, event_bus, "Publishes: PaymentSucceeded, PaymentFailed", "Kafka")
+Rel(inventory_service, event_bus, "Publishes: InventoryReserved, InventoryReleased", "Kafka")
+Rel(notification_service, event_bus, "Publishes: NotificationSent", "Kafka")
+Rel(delivery_service, event_bus, "Publishes: DeliveryRequested, DeliveryCompleted", "Kafka")
+
+' Event Bus connections - Read Side
+Rel(event_bus, order_history_service, "Subscribes to: OrderCompleted, OrderStatusChanged", "Kafka")
+Rel(event_bus, review_service, "Subscribes to: OrderCompleted", "Kafka")
+Rel(event_bus, receipt_service, "Subscribes to: OrderCompleted", "Kafka")
+
+' Event subscriptions - Write Side
+Rel(event_bus, order_service, "Subscribes to: PaymentSucceeded, InventoryReserved", "Kafka")
+Rel(event_bus, payment_service, "Subscribes to: OrderCreated", "Kafka")
+Rel(event_bus, inventory_service, "Subscribes to: OrderCreated, PaymentSucceeded", "Kafka")
+Rel(event_bus, notification_service, "Subscribes to: OrderStatusChanged, PaymentSucceeded", "Kafka")
+Rel(event_bus, delivery_service, "Subscribes to: OrderConfirmed", "Kafka")
+
+' External integrations
+Rel(payment_service, payment_gateway, "Process payments", "HTTPS")
+Rel(delivery_service, logistics_provider, "Request delivery", "HTTPS")
+
+@enduml

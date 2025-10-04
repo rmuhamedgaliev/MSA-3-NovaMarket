@@ -1,0 +1,53 @@
+@startuml Sequence_Successful_Order
+title Успешное оформление заказа - Saga Choreography
+
+actor Buyer as B
+participant "Mobile App" as MA
+participant "Order Service" as OS
+participant "Inventory Service" as IS
+participant "Payment Service" as PS
+participant "Notification Service" as NS
+participant "Delivery Service" as DS
+participant "Event Bus" as EB
+
+== Создание заказа ==
+B -> MA: Добавить товары в корзину
+MA -> OS: Создать заказ
+OS -> OS: Валидация заказа
+OS -> EB: OrderCreated (sagaId: saga-123)
+
+== Проверка и резервирование товаров ==
+EB -> IS: OrderCreated (sagaId: saga-123)
+IS -> IS: Проверка наличия товаров
+IS -> EB: InventoryAvailable (sagaId: saga-123)
+EB -> IS: InventoryReserved (sagaId: saga-123)
+IS -> IS: Резервирование товаров
+IS -> EB: InventoryReserved (sagaId: saga-123)
+
+== Обработка платежа ==
+EB -> PS: OrderCreated (sagaId: saga-123)
+PS -> PS: Подготовка к платежу
+PS -> PS: Обработка платежа через внешний шлюз
+PS -> EB: PaymentSucceeded (sagaId: saga-123)
+
+== Подтверждение заказа ==
+EB -> OS: PaymentSucceeded (sagaId: saga-123)
+OS -> OS: Подтверждение заказа
+OS -> EB: OrderConfirmed (sagaId: saga-123)
+
+== Запрос на доставку ==
+EB -> DS: OrderConfirmed (sagaId: saga-123)
+DS -> DS: Создание заявки на доставку
+DS -> EB: DeliveryRequested (sagaId: saga-123)
+
+== Уведомления ==
+EB -> NS: OrderConfirmed (sagaId: saga-123)
+NS -> NS: Отправка уведомления продавцу
+NS -> EB: SellerNotificationSent (sagaId: saga-123)
+
+== Обновление статуса ==
+OS -> EB: OrderStatusChanged
+MA -> OS: Получить статус заказа
+OS -> MA: Статус: "Подтвержден, готовится к отправке"
+
+@enduml

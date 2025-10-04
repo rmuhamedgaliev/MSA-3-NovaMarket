@@ -1,0 +1,23 @@
+{
+  "discoveredLabels": {
+    "__address__": "scaletestapp-service:80",
+    "__metrics_path__": "/metrics",
+    "__scheme__": "http",
+    "__scrape_interval__": "5s",
+    "__scrape_timeout__": "5s",
+    "job": "scaletestapp"
+  },
+  "labels": {
+    "instance": "scaletestapp-service:80",
+    "job": "scaletestapp"
+  },
+  "scrapePool": "scaletestapp",
+  "scrapeUrl": "http://scaletestapp-service:80/metrics",
+  "globalUrl": "http://scaletestapp-service:80/metrics",
+  "lastError": "",
+  "lastScrape": "2025-09-07T21:52:12.363693914Z",
+  "lastScrapeDuration": 0.004612754,
+  "health": "up",
+  "scrapeInterval": "5s",
+  "scrapeTimeout": "5s"
+}

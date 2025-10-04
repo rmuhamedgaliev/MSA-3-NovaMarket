@@ -1,0 +1,3 @@
+NAME                           CPU(cores)   MEMORY(bytes)   
+prometheus-966f78fc7-jkwd8     1m           69Mi            
+scaletestapp-875c7457c-8c295   1m           9Mi             

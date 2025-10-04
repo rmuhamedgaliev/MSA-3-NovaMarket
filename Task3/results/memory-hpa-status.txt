@@ -1,0 +1,2 @@
+NAME                      REFERENCE                 TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+scaletestapp-hpa-memory   Deployment/scaletestapp   memory: 44%/80%   1         10        1          59s

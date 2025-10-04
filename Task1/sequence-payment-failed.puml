@@ -1,0 +1,51 @@
+@startuml Sequence_Payment_Failed
+title Ошибка платежа - Saga Choreography с компенсацией
+
+actor Buyer as B
+participant "Mobile App" as MA
+participant "Order Service" as OS
+participant "Inventory Service" as IS
+participant "Payment Service" as PS
+participant "Notification Service" as NS
+participant "Event Bus" as EB
+
+== Создание заказа ==
+B -> MA: Добавить товары в корзину
+MA -> OS: Создать заказ
+OS -> OS: Валидация заказа
+OS -> EB: OrderCreated
+
+== Проверка и резервирование товаров ==
+EB -> IS: OrderCreated
+IS -> IS: Проверка наличия товаров
+IS -> EB: InventoryAvailable
+EB -> IS: InventoryReserved
+IS -> IS: Резервирование товаров
+IS -> EB: InventoryReserved
+
+== Ошибка платежа ==
+EB -> PS: OrderCreated (sagaId: saga-123)
+PS -> PS: Подготовка к платежу
+PS -> PS: Обработка платежа через внешний шлюз
+note right: Ошибка: недостаточно средств
+PS -> EB: PaymentFailed (sagaId: saga-123)
+
+== Компенсационные действия ==
+EB -> OS: PaymentFailed (sagaId: saga-123)
+OS -> OS: Отмена заказа
+OS -> EB: OrderCancelled (sagaId: saga-123)
+
+EB -> IS: OrderCancelled (sagaId: saga-123)
+IS -> IS: Освобождение резерва
+IS -> EB: InventoryReleased (sagaId: saga-123)
+
+EB -> NS: PaymentFailed (sagaId: saga-123)
+NS -> NS: Уведомление об ошибке
+NS -> EB: ErrorNotificationSent (sagaId: saga-123)
+
+== Обновление статуса ==
+OS -> EB: OrderStatusChanged
+MA -> OS: Получить статус заказа
+OS -> MA: Статус: "Отменен - ошибка платежа"
+
+@enduml

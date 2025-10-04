@@ -1,0 +1,37 @@
+@startuml Sequence_Insufficient_Inventory
+title Нехватка товаров - Saga Choreography с компенсацией
+
+actor Buyer as B
+participant "Mobile App" as MA
+participant "Order Service" as OS
+participant "Inventory Service" as IS
+participant "Notification Service" as NS
+participant "Event Bus" as EB
+
+== Создание заказа ==
+B -> MA: Добавить товары в корзину
+MA -> OS: Создать заказ
+OS -> OS: Валидация заказа
+OS -> EB: OrderCreated (sagaId: saga-123)
+
+== Проверка наличия товаров ==
+EB -> IS: OrderCreated (sagaId: saga-123)
+IS -> IS: Проверка наличия товаров
+note right: Недостаточно товаров на складе
+IS -> EB: InventoryInsufficient (sagaId: saga-123)
+
+== Компенсационные действия ==
+EB -> OS: InventoryInsufficient (sagaId: saga-123)
+OS -> OS: Отмена заказа
+OS -> EB: OrderCancelled (sagaId: saga-123)
+
+EB -> NS: InventoryInsufficient (sagaId: saga-123)
+NS -> NS: Уведомление о нехватке товаров
+NS -> EB: ErrorNotificationSent (sagaId: saga-123)
+
+== Обновление статуса ==
+OS -> EB: OrderStatusChanged
+MA -> OS: Получить статус заказа
+OS -> MA: Статус: "Отменен - товар недоступен"
+
+@enduml
